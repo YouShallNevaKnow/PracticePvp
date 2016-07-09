@@ -6,7 +6,4 @@ spawn:
 editor:
 unranked-games-min: 20
 hide-players: true
-key: ""
-value: ""
-owner-ip: ""
-license: ""
+use-colored-nametags: false

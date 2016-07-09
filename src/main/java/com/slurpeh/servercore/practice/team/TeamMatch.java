@@ -6,13 +6,10 @@ import com.slurpeh.servercore.practice.gametype.GameType;
 import com.slurpeh.servercore.practice.inventory.InventoryType;
 import com.slurpeh.servercore.practice.player.Kit;
 import com.slurpeh.servercore.practice.util.EntityHider;
-import com.slurpeh.servercore.practice.util.ItemBuilder;
 import com.slurpeh.servercore.practice.util.JsonBuilder;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -31,9 +28,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.material.Dye;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -43,17 +38,17 @@ import java.util.*;
  * Created by Bradley on 5/11/16.
  */
 public class TeamMatch implements Listener {
+    public Team t1;
+    public Team t2;
+    public HashMap<Player, String> remaining;
+    public List<Player> spectators;
     boolean started;
     TeamMatchType type;
     List<Player> players;
     GameType gt;
     Arena arena;
-    public Team t1;
-    public Team t2;
     KohiPractice plugin;
-    public HashMap<Player, String> remaining;
     HashMap<Player, PearlCounter> counters;
-    public List<Player> spectators;
     private List<Block> blocks;
 
     public TeamMatch(List<Player> players, TeamMatchType type, GameType gt, Arena arena) { //ffa constructor
@@ -63,7 +58,7 @@ public class TeamMatch implements Listener {
         this.started = false;
         this.arena = arena;
         this.remaining = new HashMap<>();
-        this.plugin = (KohiPractice) JavaPlugin.getPlugin(KohiPractice.class);
+        this.plugin = JavaPlugin.getPlugin(KohiPractice.class);
         this.counters = new HashMap<>();
         this.spectators = new ArrayList<>();
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
@@ -79,7 +74,7 @@ public class TeamMatch implements Listener {
         this.remaining = new HashMap<>();
         this.started = false;
         this.counters = new HashMap<>();
-        this.plugin = (KohiPractice) JavaPlugin.getPlugin(KohiPractice.class);
+        this.plugin = JavaPlugin.getPlugin(KohiPractice.class);
         this.spectators = new ArrayList<>();
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
         this.blocks = new ArrayList<>();
@@ -93,7 +88,7 @@ public class TeamMatch implements Listener {
         this.remaining = new HashMap<>();
         this.started = false;
         this.counters = new HashMap<>();
-        this.plugin = (KohiPractice) JavaPlugin.getPlugin(KohiPractice.class);
+        this.plugin = JavaPlugin.getPlugin(KohiPractice.class);
         this.spectators = new ArrayList<>();
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
         this.blocks = new ArrayList<>();
@@ -547,7 +542,7 @@ public class TeamMatch implements Listener {
                         Iterator<Player> plIterator = players.iterator();
                         while (plIterator.hasNext()) {
                             Player pl = plIterator.next();
-                            jb.withText(((OfflinePlayer)pl).getName() + (plIterator.hasNext() ? ", " : ".")).withColor(ChatColor.YELLOW).withClickEvent(JsonBuilder.ClickAction.RUN_COMMAND, "/inventory " + ((OfflinePlayer)pl).getName()).withHoverEvent(JsonBuilder.HoverAction.SHOW_TEXT, ChatColor.GREEN + "CLick to view inventory");
+                            jb.withText(pl.getName() + (plIterator.hasNext() ? ", " : ".")).withColor(ChatColor.YELLOW).withClickEvent(JsonBuilder.ClickAction.RUN_COMMAND, "/inventory " + pl.getName()).withHoverEvent(JsonBuilder.HoverAction.SHOW_TEXT, ChatColor.GREEN + "CLick to view inventory");
                         }
                         jb.sendJson(ply);
                     }
@@ -637,7 +632,7 @@ public class TeamMatch implements Listener {
                     Iterator<Player> plIterator = all.iterator();
                     while (plIterator.hasNext()) {
                         Player pl = plIterator.next();
-                        jb.withText(((OfflinePlayer)pl).getName() + (plIterator.hasNext() ? ", " : ".")).withColor(ChatColor.YELLOW).withClickEvent(JsonBuilder.ClickAction.RUN_COMMAND, "/inventory " + ((OfflinePlayer)pl).getName()).withHoverEvent(JsonBuilder.HoverAction.SHOW_TEXT, ChatColor.GREEN + "Click to view inventory");
+                        jb.withText(pl.getName() + (plIterator.hasNext() ? ", " : ".")).withColor(ChatColor.YELLOW).withClickEvent(JsonBuilder.ClickAction.RUN_COMMAND, "/inventory " + pl.getName()).withHoverEvent(JsonBuilder.HoverAction.SHOW_TEXT, ChatColor.GREEN + "Click to view inventory");
                     }
                     jb.sendJson(ply);
                 }
@@ -722,7 +717,7 @@ public class TeamMatch implements Listener {
                     Iterator<Player> iter = all.iterator();
                     while (iter.hasNext()) {
                         Player pl = iter.next();
-                        jb.withText(((OfflinePlayer)pl).getName() + (iter.hasNext() ? ", " : ".")).withColor(ChatColor.YELLOW).withClickEvent(JsonBuilder.ClickAction.RUN_COMMAND, "/inventory " + ((OfflinePlayer)pl).getName()).withHoverEvent(JsonBuilder.HoverAction.SHOW_TEXT, ChatColor.GREEN + "Click to view inventory");
+                        jb.withText(pl.getName() + (iter.hasNext() ? ", " : ".")).withColor(ChatColor.YELLOW).withClickEvent(JsonBuilder.ClickAction.RUN_COMMAND, "/inventory " + pl.getName()).withHoverEvent(JsonBuilder.HoverAction.SHOW_TEXT, ChatColor.GREEN + "Click to view inventory");
                     }
                     jb.sendJson(ply);
                 }
@@ -839,7 +834,7 @@ public class TeamMatch implements Listener {
     @EventHandler
     public void onDamage(EntityDamageByEntityEvent e) {
         if (e.getDamager() instanceof Player) {
-            if (spectators.contains((Player)e.getDamager())) {
+            if (spectators.contains(e.getDamager())) {
                 e.setCancelled(true);
             } else {
                 if (e.getEntity() instanceof Player) {
@@ -963,7 +958,7 @@ public class TeamMatch implements Listener {
                     for (Player ply : spectators) {
                         removeSpectator(ply);
                     }
-                    e.getDrops().clear();;
+                    e.getDrops().clear();
                     new BukkitRunnable() {
                         @Override
                         public void run() {
@@ -1035,7 +1030,7 @@ public class TeamMatch implements Listener {
     @EventHandler
     public void onThrowItem(ProjectileLaunchEvent e) {
         EntityHider hider = plugin.getEntityHider();
-        if (getAllPlayers().contains((Player)e.getEntity().getShooter())) {
+        if (getAllPlayers().contains(e.getEntity().getShooter())) {
             for (Player ply : Bukkit.getOnlinePlayers()) {
                 if (!getAllPlayers().contains(ply)) {
                     hider.hideEntity(ply, e.getEntity());
@@ -1060,7 +1055,7 @@ public class TeamMatch implements Listener {
                                 event.setCancelled(true);
                             } else {
                                 final PearlCounter counter = new PearlCounter(shooter, this);
-                                counter.runTaskTimer((Plugin) this.plugin, 0L, 20L);
+                                counter.runTaskTimer(this.plugin, 0L, 20L);
                                 this.counters.put(shooter, counter);
                             }
                         } else if (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) {
@@ -1107,7 +1102,7 @@ public class TeamMatch implements Listener {
                                 event.setCancelled(true);
                             } else {
                                 final PearlCounter counter = new PearlCounter(shooter, this);
-                                counter.runTaskTimer((Plugin) this.plugin, 0L, 20L);
+                                counter.runTaskTimer(this.plugin, 0L, 20L);
                                 this.counters.put(shooter, counter);
                             }
                         } else if (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) {
@@ -1154,7 +1149,7 @@ public class TeamMatch implements Listener {
                                 event.setCancelled(true);
                             } else {
                                 final PearlCounter counter = new PearlCounter(shooter, this);
-                                counter.runTaskTimer((Plugin) this.plugin, 0L, 20L);
+                                counter.runTaskTimer(this.plugin, 0L, 20L);
                                 this.counters.put(shooter, counter);
                             }
                         } else if (event.getAction() == Action.RIGHT_CLICK_BLOCK || event.getAction() == Action.RIGHT_CLICK_AIR) {
@@ -1197,7 +1192,7 @@ public class TeamMatch implements Listener {
                                 event.setCancelled(true);
                             } else {
                                 final PearlCounter counter = new PearlCounter(shooter, this);
-                                counter.runTaskTimer((Plugin) this.plugin, 0L, 20L);
+                                counter.runTaskTimer(this.plugin, 0L, 20L);
                                 this.counters.put(shooter, counter);
                             }
                         } else if (event.getAction() == Action.RIGHT_CLICK_BLOCK || event.getAction() == Action.RIGHT_CLICK_AIR) {
@@ -1246,14 +1241,14 @@ public class TeamMatch implements Listener {
                         final EntityHider hider = this.plugin.getEntityHider();
                         for (final Player ply : Bukkit.getOnlinePlayers()) {
                             if (ply != ply1) {
-                                hider.hideEntity(ply, (Entity) event.getItemDrop());
+                                hider.hideEntity(ply, event.getItemDrop());
                             }
                         }
                         new BukkitRunnable() {
                             public void run() {
                                 event.getItemDrop().remove();
                             }
-                        }.runTaskLater((Plugin) this.plugin, 60L);
+                        }.runTaskLater(this.plugin, 60L);
                     }
                 }
             }
@@ -1263,14 +1258,14 @@ public class TeamMatch implements Listener {
                         final EntityHider hider = this.plugin.getEntityHider();
                         for (final Player ply : Bukkit.getOnlinePlayers()) {
                             if (ply != ply1) {
-                                hider.hideEntity(ply, (Entity) event.getItemDrop());
+                                hider.hideEntity(ply, event.getItemDrop());
                             }
                         }
                         new BukkitRunnable() {
                             public void run() {
                                 event.getItemDrop().remove();
                             }
-                        }.runTaskLater((Plugin) this.plugin, 60L);
+                        }.runTaskLater(this.plugin, 60L);
                     }
                 }
             }
@@ -1280,14 +1275,14 @@ public class TeamMatch implements Listener {
                         final EntityHider hider = this.plugin.getEntityHider();
                         for (final Player ply : Bukkit.getOnlinePlayers()) {
                             if (ply != ply1) {
-                                hider.hideEntity(ply, (Entity) event.getItemDrop());
+                                hider.hideEntity(ply, event.getItemDrop());
                             }
                         }
                         new BukkitRunnable() {
                             public void run() {
                                 event.getItemDrop().remove();
                             }
-                        }.runTaskLater((Plugin) this.plugin, 60L);
+                        }.runTaskLater(this.plugin, 60L);
                     }
                 }
                 for (Player ply1 : t2.getTeam()) {
@@ -1295,14 +1290,14 @@ public class TeamMatch implements Listener {
                         final EntityHider hider = this.plugin.getEntityHider();
                         for (final Player ply : Bukkit.getOnlinePlayers()) {
                             if (ply != ply1) {
-                                hider.hideEntity(ply, (Entity) event.getItemDrop());
+                                hider.hideEntity(ply, event.getItemDrop());
                             }
                         }
                         new BukkitRunnable() {
                             public void run() {
                                 event.getItemDrop().remove();
                             }
-                        }.runTaskLater((Plugin) this.plugin, 60L);
+                        }.runTaskLater(this.plugin, 60L);
                     }
                 }
             }
@@ -1313,31 +1308,6 @@ public class TeamMatch implements Listener {
         ArrayList<Player> plys = new ArrayList<>();
         plys.addAll(players);
         return plys;
-    }
-
-    public class PearlCounter extends BukkitRunnable {
-        private int counter;
-        private Player ply;
-        private TeamMatch match;
-
-        public PearlCounter(final Player ply, final TeamMatch match) {
-            this.ply = ply;
-            this.counter = 16;
-            this.match = match;
-        }
-
-        public void run() {
-            this.ply.setLevel(this.counter);
-            -- this.counter;
-            if (this.counter < 0) {
-                this.cancel();
-                this.match.removeCounter(this);
-            }
-        }
-
-        public int getCooldown() {
-            return this.counter + 1;
-        }
     }
 
     public void removeCounter(PearlCounter pc) {
@@ -1399,5 +1369,30 @@ public class TeamMatch implements Listener {
         ply.setGameMode(GameMode.SURVIVAL);
         ply.setFlying(false);
         spectators.remove(ply);
+    }
+
+    public class PearlCounter extends BukkitRunnable {
+        private int counter;
+        private Player ply;
+        private TeamMatch match;
+
+        public PearlCounter(final Player ply, final TeamMatch match) {
+            this.ply = ply;
+            this.counter = 16;
+            this.match = match;
+        }
+
+        public void run() {
+            this.ply.setLevel(this.counter);
+            -- this.counter;
+            if (this.counter < 0) {
+                this.cancel();
+                this.match.removeCounter(this);
+            }
+        }
+
+        public int getCooldown() {
+            return this.counter + 1;
+        }
     }
 }

