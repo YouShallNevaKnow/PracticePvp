@@ -1,0 +1,45 @@
+name: KohiPractice
+version: 0.0.1-b02
+main: com.slurpeh.servercore.practice.KohiPractice
+commands:
+  arena:
+    description: Arena-Related commands
+    usage: /arena
+    permission: kohipractice.commands.arena
+  elo:
+    description: Elo-Related commands
+    usage: /elo
+    permisssion: kohipractice.commands.elo
+  gametype:
+    description: GameType-Related commands
+    usage: /gametype
+    permission: kohipractice.commands.gametype
+  inventory:
+    description: Inventory-Related commands
+    usage: /inventory
+  duel:
+    description: Duel-Related commands
+    usage: /duel
+  accept:
+    description: Accept-Related commands
+    usage: /accept
+  set:
+    description: Location-Related commands
+    usage: /set
+    permission: kohipractice.commands.set
+  team:
+    description: Team-Related commands
+    usage: /team
+  taccept:
+    description: Accept a team fight
+    usage: /taccept
+  tduel:
+    description: Accept a team fight
+    usage: /tduel
+  c:
+    description: Chat stuff
+    usage: /c
+  spectate:
+    description: Spectating
+    usage: /spectate
+

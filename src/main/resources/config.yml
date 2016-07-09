@@ -1,0 +1,12 @@
+arenas: {}
+kitEditor: "&6Kit Editor"
+rankedItem: "&aRanked Queue"
+unrankedItem: "&9Un-Ranked Queue"
+spawn:
+editor:
+unranked-games-min: 20
+hide-players: true
+key: ""
+value: ""
+owner-ip: ""
+license: ""
